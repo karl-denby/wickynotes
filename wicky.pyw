@@ -1,14 +1,20 @@
 #!/usr/bin/env python
+
+# Imports:
+# python3 print_function even in python2
+# sqlite for out data file
+# try python2 imports then try python3 imports
+
 from __future__ import print_function
 import sqlite3
-try:  # python2 imports
-    import tkinter as Tkinter
-    import tkinter.ttk as ttk
-    import tkinter.messagebox as tkMessageBox
-except ImportError:  # python3 imports
-    import Tkinter
-    import ttk
-    import tkMessageBox
+try:
+    from Tkinter import *
+    from ttk import *
+    from tkMessageBox import *
+except ImportError:
+    from tkinter import *
+    from tkinter.ttk import *
+    from tkinter.messagebox import *
 
 
 class NoteWindow:
@@ -18,6 +24,9 @@ class NoteWindow:
     ## calling the appropriate backend process when we
     ## need to read/write something at an app level
 
+    ## Exception to this is refresh_note, we want to call the db direclty
+    ## as its copy of the running notes is the only one that counts
+
     def create_note(self, named_note, event):
     # GUI:
         print("GUI: Create Note")
@@ -26,6 +35,9 @@ class NoteWindow:
         print("Calling NoteManger to recreate this note")
     # Backend:
         server.recreate_note(named_note)
+
+    def master_close(self, event=''):
+        print("Attempt to kill the master window")
 
     def master_note(self, event=''):
         # GUI
@@ -44,7 +56,6 @@ class NoteWindow:
         master.map_note.config(state='disabled')
         master.note_payload.tag_configure('bold', font='helvetica 10 bold')
         master.note_payload.tag_add('bold', '3.0', 'end')
-
         return master
 
     def click_linked(self, event=''):
@@ -230,7 +241,7 @@ class NoteWindow:
         self.ComboVar = ""
         self.StayOnTop = 0
         self.title = note_title
-        self.window = Tkinter.Tk()
+        self.window = Tk()
         self.window.protocol("WM_DELETE_WINDOW", self.note_close)
         self.window.title(note_title)
         self.window.resizable(1, 1)
@@ -242,7 +253,7 @@ class NoteWindow:
 
         # Components
         ## Header Options
-        self.note_color = ttk.Combobox(
+        self.note_color = Combobox(
             self.window,
             values=('Yellow', 'Pink', 'Cyan', 'White', 'Red'),
             state='readonly',
@@ -252,21 +263,21 @@ class NoteWindow:
         self.ComboVar = self.init_colors(note_bg)
         self.note_color.current(self.ComboVar)
 
-        self.on_top = Tkinter.Checkbutton(
+        self.on_top = Checkbutton(
             self.window,
             text="On Top",
             variable=self.StayOnTop,
             command=self.set_sticky
             )
 
-        self.new_note = ttk.Button(
+        self.new_note = Button(
             self.window,
             text="New Note",
             underline=0,
             command=self.click_newnote
             )
 
-        self.map_note = ttk.Button(
+        self.map_note = Button(
             self.window,
             text="All Notes",
             underline=0,
@@ -274,7 +285,7 @@ class NoteWindow:
             )
 
         ## Main window
-        self.note_payload = Tkinter.Text(
+        self.note_payload = Text(
             master=self.window,
             width=60,
             height=17,
@@ -292,10 +303,6 @@ class NoteWindow:
         # Key Bindings
         self.window.bind_all('<Alt-n>', self.click_newnote)
         self.window.bind_all('<Alt-a>', self.master_note)
-
-        # The Grid
-        #self.window.rowconfigure(0, weight=)
-        #self.window.columnconfigure(0, weight=1)
 
         self.window.rowconfigure(0, weight=0)
         self.window.rowconfigure(1, weight=1)
@@ -316,9 +323,11 @@ class NoteWindow:
         self.window.lift()
 
 # NoteDB ------
-# v0.0.19 - text has to resize to window for platform compatibility
-#         - this makes a mess of the grid
-# v0.1.00 - release
+# v0.1  - Prototype: highlight code not working perfectly
+# v0.2  - Prototype: PEP8 compliance and fixes to highlighting code
+# v0.3  - Refactor: preperation for single class rebuild.
+#       - Refactor: imports are cleaner, namespace is tidy.
+#       - Refactor:
 
 
 class NoteManager:
@@ -354,8 +363,10 @@ class NoteManager:
         connection.commit()
         connection.close()
 
-        self.note_window_map[str(note_data[3])] = None  # No Obj = not running?
+        self.note_window_map[str(note_data[3])] = None  # blank it?
+        del self.note_window_map[str(note_data[3])]  # destroy it
         print("Removed note from list of running notes")
+        self.note_window_map[str(note_data[0])] = None  # add another
 
     def recreate_note(self, named_note, filename='notes.db'):
     # whatever name we are passed, check we don't have an object
@@ -382,7 +393,7 @@ class NoteManager:
             print("Note name " + named_note[0] + " not found attempting search")
 
         # lets try find that note anyway
-        for note in self.note_window_map.keys():
+        for note in list(self.note_window_map.keys()):
             if len(note.split(" ")) > 1:  # If stored title has a space in it
                 if named_note[0] in note:  # compare it with the passed value
                     print("Found note named, '" + note + "' recreating this")
@@ -480,10 +491,10 @@ notebook = 'notes.db'
 server = NoteManager(notebook)
 
 # Display Warning
-tkMessageBox.showinfo(title="v0.2", message="Minor Fixes")
+showinfo(title="v0.3", message="Refactoring")
 
 # Mk Win, start loop, kill that window.
-hidden = Tkinter.Tk()
+hidden = Tk()
 hidden.destroy()
 hidden.mainloop()
 print("Note Manager: Exiting")
