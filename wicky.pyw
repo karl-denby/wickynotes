@@ -71,6 +71,8 @@ class NoteWindow:
             print (word + ": is closed, Recreating")
             self.create_note(word, event)
 
+        self.refresh_note()
+
     def click_htext(self, event=''):
         # This is kind of our test function at the minute!
         # not sure about what we want in the Master note so
@@ -104,6 +106,7 @@ class NoteWindow:
         # Backend, make the note as specified
         server.create_new_note(note_data)
         print(self.title + ": Note Created")
+        self.refresh_note()
 
     def note_close(self):
         # GUI, Master is special case, not in DB so just destroy it.
@@ -185,8 +188,17 @@ class NoteWindow:
         self.note_payload.tag_add('header', '1.0', '1.end')
 
         # Links
-        note_titles = self.note_names
-        #print(self.note_names)
+        note_titles = list(self.note_names)
+
+        note_titles = []
+
+        connection = sqlite3.connect("notes.db")
+        cursor = connection.cursor()
+        for results_line in cursor.execute(
+            """SELECT title, note, color, visible FROM notes"""
+        ):
+            note_titles.append(results_line[0])   # used for keys
+        connection.close()
 
         self.note_payload.tag_configure('bold', font='helvetica 10 bold')
         self.note_payload.tag_remove('bold', '2.0', 'end')
@@ -201,7 +213,8 @@ class NoteWindow:
 #                print(word_start)
                 word_end = word_start.split(".")
                 if len(word_end) > 1:
-                    word_end = word_end[0] + '.' + str(int(word_end[1]) + len(title))
+                    tmp = word_end[0] + '.' + str(int(word_end[1]) + len(title))
+                    word_end = tmp
 #                    print (word_end)
                 if not word_start:
                     break
@@ -222,6 +235,9 @@ class NoteWindow:
         self.window.title(note_title)
         self.window.resizable(1, 1)
         self.window.minsize(400, 240)
+
+        self.window.bind('<FocusIn>', self.refresh_note)
+        self.window.bind('<Enter>', self.refresh_note)
         #self.window.geometry('405x300')
 
         # Components
@@ -363,7 +379,7 @@ class NoteManager:
 
         # Just in case something went wrong
         if note is None:
-            print("Note name " + named_note[0] + " not found in attempting to find a match")
+            print("Note name " + named_note[0] + " not found attempting search")
 
         # lets try find that note anyway
         for note in self.note_window_map.keys():
@@ -382,7 +398,7 @@ class NoteManager:
 
         # Just in case something went wrong again, bail out nicely!
         if note is None:
-            print("Note name " + named_note[0] + " not found, attempting to find a match")
+            print("Note name " + named_note[0] + " not found attempting search")
             return
 
         # Now we have some certainty what the user wants, lets figure out if its
@@ -458,12 +474,13 @@ class NoteManager:
         self.note_window_map = self.create_all_notes(filename)
         print("Note Manager: Notes and mapping, Created")
 
+
 # Note Manager
 notebook = 'notes.db'
 server = NoteManager(notebook)
 
 # Display Warning
-tkMessageBox.showinfo(title="v0.0.19", message="Fix before Release")
+tkMessageBox.showinfo(title="v0.2", message="Minor Fixes")
 
 # Mk Win, start loop, kill that window.
 hidden = Tkinter.Tk()
