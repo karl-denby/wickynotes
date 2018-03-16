@@ -1,6 +1,6 @@
 # wickynotes
 
-__"Wicky Notes"__ is a sticky notes app with "wiki" features.
+__"wickynotes"__ is a sticky notes app with "wiki" features.
 
 Any note title will show up as a link in other notes. For example if you have a note called "To Do" and another note called "Groceries" when you write groceries on your to do list, it will become a link to the groceries note automatically. You can use this to go to that note even if it is closed.
 
